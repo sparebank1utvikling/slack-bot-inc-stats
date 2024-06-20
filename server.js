@@ -1,0 +1,191 @@
+import pkg from "@slack/bolt";
+import dotenv from "dotenv";
+import { addInc, getIncs } from "./db.js";
+
+const { App, SocketModeReceiver } = pkg;
+dotenv.config();
+
+const app = new App({
+  token: process.env.SLACK_BOT_TOKEN, // Bot user token
+  receiver: new SocketModeReceiver({
+    appToken: process.env.SOCKET_TOKEN, // App-level token
+  }),
+});
+
+const categories = [
+  { text: "Category 1", value: "category_1" },
+  { text: "Category 2", value: "category_2" },
+  { text: "Category 3", value: "category_3" },
+];
+
+// Add your event listeners
+app.event("message", async ({ event, client, context }) => {
+  console.log("Message received:", event);
+  const encodedText = btoa(event.text);
+  console.log("encodedText", encodedText);
+  try {
+    // Respond with a message containing a dropdown menu
+    await client.chat.postMessage({
+      channel: event.channel,
+      text: `Hello, <@${event.user}>! Please choose a category:`,
+      blocks: [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: "Please choose a category from the dropdown menu below:",
+          },
+          accessory: {
+            type: "static_select",
+            action_id: `category_select-${encodedText}`,
+            placeholder: {
+              type: "plain_text",
+              text: "Select a category",
+            },
+            options: categories.map((category) => ({
+              text: {
+                type: "plain_text",
+                text: category.text,
+              },
+              value: category.value,
+            })),
+          },
+        },
+      ],
+    });
+  } catch (error) {
+    console.error("Error posting message:", error);
+  }
+});
+
+// Listen for the interaction from the dropdown menu
+app.action(/category_select-.*/, async ({ body, ack, say }) => {
+  // Acknowledge the action
+  await ack();
+  console.log("body", body);
+  const text = atob(body.actions[0].action_id.split("-")[1]);
+  console.log("text", text);
+  // Respond to the user's selection
+  const selectedCategory = body.actions[0].selected_option.text.text;
+  await say(`You selected: ${selectedCategory}`);
+  addInc(body.user.username, text, selectedCategory);
+});
+
+app.command("/inc_stats", async ({ ack, body, client }) => {
+  // Acknowledge the command request
+  await ack();
+  console.log("body",body)
+
+const numbers = body.text.match(/\d+/);
+const numberOfDays = numbers ? parseInt(numbers[0]) : undefined
+console.log("Extracted number:", numberOfDays);
+
+  const dbResponse = await getIncs(numberOfDays);
+
+  const totalIncs = dbResponse.rows.length;
+  const incCounts = dbResponse.rows.reduce((acc, row) => {
+    if (acc[row.category]) {
+      acc[row.category]++;
+    } else {
+      acc[row.category] = 1;
+    }
+    return acc;
+  }, {});
+
+  // Post a response in the channel where the command was invoked
+  try {
+    const result = await client.views.open({
+      trigger_id: body.trigger_id,
+      view: {
+        type: "modal",
+        callback_id: "inc_stats_modal",
+        title: {
+          type: "plain_text",
+          text: `Inc stats ${numberOfDays ? `siste ${numberOfDays} dager` : ''}`,
+        },
+        blocks: [
+            {
+                type: "section",
+                block_id: "total_count",
+                text: {
+                  type: "mrkdwn",
+                  text: `Total incs: ${totalIncs}`,
+              },
+            },
+          {
+            type: "section",
+            block_id: "category_counts",
+            text: {
+              type: "mrkdwn",
+              text: Object.entries(incCounts)
+                .sort((a, b) => b[1] - a[1])
+                .map(([category, count]) => `${category}: ${count}`)
+                .join("\n"),
+            },
+          },
+        ],
+      },
+    });
+  } catch (error) {
+    console.error("Error posting message:", error);
+  }
+});
+
+app.event("app_home_opened", async ({ event, client, context }) => {
+  try {
+    const dbResponse = await getIncs();
+    /* view.publish is the method that your app uses to push a view to the Home tab */
+    await client.views.publish({
+      /* the user that opened your app's app home */
+      user_id: event.user,
+
+      /* the view object that appears in the app home*/
+      view: {
+        type: "home",
+        callback_id: "home_view",
+
+        /* body of the view */
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: "*Welcome to your _App's Home tab_* :tada:",
+            },
+          },
+          {
+            type: "divider",
+          },
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: dbResponse.rows
+                .map((row) => `${row.text} (${row.category})`)
+                .join("\n"),
+            },
+          },
+          {
+            type: "actions",
+            elements: [
+              {
+                type: "button",
+                text: {
+                  type: "plain_text",
+                  text: "Click me!",
+                },
+              },
+            ],
+          },
+        ],
+      },
+    });
+  } catch (error) {
+    console.error(error);
+  }
+});
+
+(async () => {
+  await app.start();
+  console.log("⚡️ Bolt app started");
+})();
