@@ -1,6 +1,7 @@
 import pkg from "@slack/bolt";
 import dotenv from "dotenv";
-import { addInc, getIncs } from "./db.js";
+import { addInc, getIncs, getIncNumberByWeek } from "./db.js";
+import QuickChart from 'quickchart-js';
 
 const { App, SocketModeReceiver } = pkg;
 dotenv.config();
@@ -74,11 +75,11 @@ app.action(/category_select-.*/, async ({ body, ack, say }) => {
 app.command("/inc_stats", async ({ ack, body, client }) => {
   // Acknowledge the command request
   await ack();
-  console.log("body",body)
+  console.log("body", body);
 
-const numbers = body.text.match(/\d+/);
-const numberOfDays = numbers ? parseInt(numbers[0]) : undefined
-console.log("Extracted number:", numberOfDays);
+  const numbers = body.text.match(/\d+/);
+  const numberOfDays = numbers ? parseInt(numbers[0]) : undefined;
+  console.log("Extracted number:", numberOfDays);
 
   const dbResponse = await getIncs(numberOfDays);
 
@@ -91,27 +92,59 @@ console.log("Extracted number:", numberOfDays);
     }
     return acc;
   }, {});
+  
+
+  const incNumberByWeek = await getIncNumberByWeek();
+  // Prepare data for the chart
+  const labels = incNumberByWeek.rows.map(row => row.week.toISOString().split('T')[0]);
+  const data = incNumberByWeek.rows.map(row => parseInt(row.count, 10));
+
+   // Generate the bar chart URL using QuickChart
+  const chart = new QuickChart();
+  chart.setConfig({
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Incidents per Week',
+        data: data,
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        borderColor: 'rgba(75, 192, 192, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+  chart.setWidth(800);
+  chart.setHeight(400);
+  const chartUrl = chart.getUrl();
 
   // Post a response in the channel where the command was invoked
   try {
-    const result = await client.views.open({
+    await client.views.open({
       trigger_id: body.trigger_id,
       view: {
         type: "modal",
         callback_id: "inc_stats_modal",
         title: {
           type: "plain_text",
-          text: `Inc stats ${numberOfDays ? `siste ${numberOfDays} dager` : ''}`,
+          text: `Inc stats ${numberOfDays ? `siste ${numberOfDays} dager` : ""}`,
         },
         blocks: [
-            {
-                type: "section",
-                block_id: "total_count",
-                text: {
-                  type: "mrkdwn",
-                  text: `Total incs: ${totalIncs}`,
-              },
+          {
+            type: "section",
+            block_id: "total_count",
+            text: {
+              type: "mrkdwn",
+              text: `Total incs: ${totalIncs}`,
             },
+          },
           {
             type: "section",
             block_id: "category_counts",
@@ -123,6 +156,11 @@ console.log("Extracted number:", numberOfDays);
                 .join("\n"),
             },
           },
+          {
+            type: 'image',
+            image_url: chartUrl,
+            alt_text: 'Incidents per Week'
+          }
         ],
       },
     });
