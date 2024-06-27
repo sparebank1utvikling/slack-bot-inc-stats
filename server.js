@@ -1,6 +1,6 @@
 import pkg from "@slack/bolt";
 import dotenv from "dotenv";
-import { addInc, getIncs, getIncNumberByWeek } from "./db.js";
+import { addOrUpdateInc, getIncs, getIncNumberByWeek, getIncByCategory } from "./db.js";
 import QuickChart from 'quickchart-js';
 
 const { App, SocketModeReceiver } = pkg;
@@ -69,7 +69,7 @@ app.action(/category_select-.*/, async ({ body, ack, say }) => {
   // Respond to the user's selection
   const selectedCategory = body.actions[0].selected_option.text.text;
   await say(`You selected: ${selectedCategory}`);
-  addInc(body.user.username, text, selectedCategory);
+  addOrUpdateInc(body.user.username, text, selectedCategory);
 });
 
 app.command("/inc_stats", async ({ ack, body, client }) => {
@@ -84,46 +84,10 @@ app.command("/inc_stats", async ({ ack, body, client }) => {
   const dbResponse = await getIncs(numberOfDays);
 
   const totalIncs = dbResponse.rows.length;
-  const incCounts = dbResponse.rows.reduce((acc, row) => {
-    if (acc[row.category]) {
-      acc[row.category]++;
-    } else {
-      acc[row.category] = 1;
-    }
-    return acc;
-  }, {});
   
 
-  const incNumberByWeek = await getIncNumberByWeek();
-  // Prepare data for the chart
-  const labels = incNumberByWeek.rows.map(row => row.week.toISOString().split('T')[0]);
-  const data = incNumberByWeek.rows.map(row => parseInt(row.count, 10));
-
-   // Generate the bar chart URL using QuickChart
-  const chart = new QuickChart();
-  chart.setConfig({
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Incidents per Week',
-        data: data,
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        borderColor: 'rgba(75, 192, 192, 1)',
-        borderWidth: 1
-      }]
-    },
-    options: {
-      scales: {
-        y: {
-          beginAtZero: true
-        }
-      }
-    }
-  });
-  chart.setWidth(800);
-  chart.setHeight(400);
-  const chartUrl = chart.getUrl();
+  const chartUrlByWeek = await generateIncByWeekChart(numberOfDays);
+  const chartUrlByCategory = await generateIncByCategoryChart(numberOfDays);
 
   // Post a response in the channel where the command was invoked
   try {
@@ -146,19 +110,13 @@ app.command("/inc_stats", async ({ ack, body, client }) => {
             },
           },
           {
-            type: "section",
-            block_id: "category_counts",
-            text: {
-              type: "mrkdwn",
-              text: Object.entries(incCounts)
-                .sort((a, b) => b[1] - a[1])
-                .map(([category, count]) => `${category}: ${count}`)
-                .join("\n"),
-            },
+            type: 'image',
+            image_url: chartUrlByCategory,
+            alt_text: 'Incidents per Week'
           },
           {
             type: 'image',
-            image_url: chartUrl,
+            image_url: chartUrlByWeek,
             alt_text: 'Incidents per Week'
           }
         ],
@@ -227,3 +185,72 @@ app.event("app_home_opened", async ({ event, client, context }) => {
   await app.start();
   console.log("⚡️ Bolt app started");
 })();
+
+
+async function generateIncByWeekChart(numberOfDays){
+
+  const incNumberByWeek = await getIncNumberByWeek(numberOfDays);
+
+  // Prepare data for the chart
+  const labels = incNumberByWeek.rows.map(row => row.week.toISOString().split('T')[0]);
+  const data = incNumberByWeek.rows.map(row => parseInt(row.count, 10));
+
+   // Generate the bar chart URL using QuickChart
+  const chart = new QuickChart();
+  chart.setConfig({
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Incidents per Week',
+        data: data,
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        borderColor: 'rgba(75, 192, 192, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+  chart.setWidth(800);
+  chart.setHeight(400);
+  return chart.getUrl();
+}
+
+async function generateIncByCategoryChart(numberOfDays){
+  const dbResponse = await getIncByCategory(numberOfDays);
+
+  const labels = dbResponse.rows.map(row => row.category);
+  const data = dbResponse.rows.map(row => parseInt(row.count, 10));
+
+   // Generate the bar chart URL using QuickChart
+  const chart = new QuickChart();
+  chart.setConfig({
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Incidents by category',
+        data: data,
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        borderColor: 'rgba(75, 192, 192, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+  chart.setWidth(800);
+  chart.setHeight(400);
+  return chart.getUrl();
+}

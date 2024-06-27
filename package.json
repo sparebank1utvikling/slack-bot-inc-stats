@@ -8,12 +8,14 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
     "initDB": "node initDB.js",
+    "testDB": "node generateTestDB.js",
     "lint": "eslint . --fix",
     "prettier": "prettier --write ."
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@faker-js/faker": "^8.4.1",
     "@slack/bolt": "^3.18.0",
     "@slack/socket-mode": "^2.0.0",
     "dotenv": "^16.4.5",

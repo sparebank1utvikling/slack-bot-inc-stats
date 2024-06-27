@@ -17,7 +17,7 @@ try {
         CREATE TABLE IF NOT EXISTS incs (
           id SERIAL PRIMARY KEY,
           user_name VARCHAR(50),
-          text VARCHAR(1000),
+          text VARCHAR(1000) UNIQUE NOT NULL,
           category VARCHAR(50),
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
