@@ -1,0 +1,21 @@
+version: '3.8'  # Optional: specify the Compose file version
+
+services:
+  slack-bot-inc-stats:
+    build: .
+    network_mode: bridge
+    # hostname: slack-bot-inc-stats.dev.sparebank1.no
+    links:
+      - pg-db
+
+  pg-db:
+    image: docker.intern.sparebank1.no/postgres-14-empty/master:latest
+    network_mode: bridge
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ./docker-db:/docker-entrypoint-initdb.d/
+    ports:
+      - "5432:5432"

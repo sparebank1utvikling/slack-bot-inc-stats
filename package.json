@@ -6,9 +6,9 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
-    "initDB": "node initDB.js",
-    "testDB": "node generateTestDB.js",
+    "start": "node app/server.js",
+    "initDB": "node app/initDB.js",
+    "testDB": "node app/generateTestDB.js",
     "lint": "eslint . --fix",
     "prettier": "prettier --write ."
   },
