@@ -12,7 +12,7 @@ ENV DATABASE_URL=$DATABASE_URL
 
 # Install app dependencies
 COPY package*.json ./
-RUN npm install --only=production
+RUN npm install --include=dev
 
 # Copy the rest of the application code
 COPY . .
