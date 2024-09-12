@@ -33,3 +33,7 @@ jobs:
           push: true
           tags: ${{ secrets.IMAGE_TAG }}
           file: Dockerfile
+          build-args: |
+            SLACK_BOT_TOKEN=${{ secrets.SLACK_BOT_TOKEN }}
+            SOCKET_TOKEN=${{ secrets.SOCKET_TOKEN }}
+            DATABASE_URL=your_database_url
