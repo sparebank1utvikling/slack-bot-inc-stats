@@ -19,6 +19,55 @@ const categories = [
   { text: "Category 3", value: "category_3" },
 ];
 
+app.event("app_home_opened", async ({ event, client }) => {
+  try {
+    /* view.publish is the method that your app uses to push a view to the Home tab */
+    await client.views.publish({
+      /* the user that opened your app's app home */
+      user_id: event.user,
+
+      /* the view object that appears in the app home*/
+      view: {
+        type: "home",
+        callback_id: "home_view",
+
+        /* body of the view */
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: "*Welcome to your _App's Home tab_* :tada:",
+            },
+          },
+          {
+            type: "divider",
+          },
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: "This is a section block with a button."
+            },
+            accessory: {
+              type: "button",
+              text: {
+                type: "plain_text",
+                text: "Click me!"
+              },
+              action_id: "button_click"
+            }
+          }
+        ],
+      },
+    });
+  }
+  catch (error) {
+    console.error(error);
+  }
+
+});
+
 // Add your event listeners
 app.event("message", async ({ event, client, context }) => {
   console.log("Message received:", event);
