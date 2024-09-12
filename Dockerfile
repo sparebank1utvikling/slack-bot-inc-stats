@@ -29,9 +29,6 @@ FROM node:18-alpine AS production
 # Set working directory
 WORKDIR /app
 
-# Copy necessary files from the build stage
-COPY --from=build /app .
-
 # Set runtime environment variables
 # Set DATABASE_URL for runtime
 ENV DATABASE_URL=$DATABASE_URL
