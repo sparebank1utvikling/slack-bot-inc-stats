@@ -11,7 +11,7 @@ ARG DATABASE_URL
 ENV DATABASE_URL=$DATABASE_URL
 
 # Install app dependencies
-COPY package*.json ./
+ADD package.json package-lock.json 
 RUN npm install --include=dev
 
 # Copy the rest of the application code
