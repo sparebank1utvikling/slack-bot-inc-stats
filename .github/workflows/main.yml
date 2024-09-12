@@ -7,6 +7,10 @@ jobs:
   build:
     name: 'Build and Push to ACR'
     runs-on: ubuntu-latest
+    env:
+      SLACK_BOT_TOKEN:  ${{ secrets.SLACK_BOT_TOKEN }}
+      SOCKET_TOKEN: ${{ secrets.SOCKET_TOKEN }}
+      DATABASE_URL: 'your_database_url'
 
     defaults:
       run:
