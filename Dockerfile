@@ -4,19 +4,20 @@ FROM node:18-alpine AS build
 # Set working directory
 WORKDIR /app
 
-# Install app dependencies
-# Copy package.json and package-lock.json files first for better caching
-COPY package*.json ./
+# Define build arguments
+ARG DATABASE_URL
 
-# Install dependencies
+# Use build arguments as environment variables during build
+ENV DATABASE_URL=$DATABASE_URL
+
+# Install app dependencies
+COPY package*.json ./
 RUN npm install --only=production
 
 # Copy the rest of the application code
-COPY /app .
+COPY . .
 
-COPY .env .
-
-# Build the app (if your app has a build step, e.g., using Webpack, etc.)
+# Build the app (if needed)
 # RUN npm run build
 
 # Stage 2: Create the production image
@@ -25,10 +26,12 @@ FROM node:18-alpine AS production
 # Set working directory
 WORKDIR /app
 
-# Copy only the necessary files from the build stage
+# Copy necessary files from the build stage
 COPY --from=build /app .
 
-# Set environment variables
+# Set runtime environment variables
+# Set DATABASE_URL for runtime
+ENV DATABASE_URL=$DATABASE_URL
 ENV NODE_ENV=production
 
 # Expose the port on which the app will run
