@@ -6,7 +6,7 @@ on:
 jobs:
   build:
     name: 'Build and Push to ACR'
-    runs-on: [self-hosted, sb1u]
+    runs-on: [sb1u]
 
     defaults:
       run:
