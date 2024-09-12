@@ -7,7 +7,9 @@ const { App, SocketModeReceiver } = pkg;
 dotenv.config();
 
 console.log("SLACK_BOT_TOKEN", process.env.SLACK_BOT_TOKEN);
-console.log("SLACK_SIGNING_SECRET", process.env.SLACK_SIGNING_SECRET);
+console.log("SLACK_SIGNING_SECRET", process.env.SOCKET_TOKEN);
+
+
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN, // Bot user token
   receiver: new SocketModeReceiver({

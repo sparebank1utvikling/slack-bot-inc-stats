@@ -29,13 +29,16 @@ FROM node:18-alpine AS production
 # Set working directory
 WORKDIR /app
 
+# Copy the built app from the previous stage
+COPY . .
+
 # Set runtime environment variables
 # Set DATABASE_URL for runtime
 ENV DATABASE_URL=$DATABASE_URL
 ENV NODE_ENV=production
 
 # Expose the port on which the app will run
-EXPOSE 3001
+EXPOSE 8080
 
 # Command to run the app
-CMD ["node", "server.js"]
+CMD ["npm", "start"]
