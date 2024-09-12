@@ -1,6 +1,9 @@
 # Stage 1: Build the app
 FROM node:18-alpine AS build
 
+# Install all node_modules, including dev dependencies
+FROM base as deps
+
 # Set working directory
 WORKDIR /app
 
