@@ -16,7 +16,7 @@
   "license": "ISC",
   "dependencies": {
     "@faker-js/faker": "^8.4.1",
-    "@slack/bolt": "^3.18.0",
+    "@slack/bolt": "^3.21.4",
     "@slack/socket-mode": "^2.0.0",
     "dotenv": "^16.4.5",
     "pg": "^8.12.0",

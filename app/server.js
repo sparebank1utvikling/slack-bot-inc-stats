@@ -1,9 +1,8 @@
-import pkg from "@slack/bolt";
+import { App, SocketModeReceiver } from "@slack/bolt";
 import dotenv from "dotenv";
 import { addOrUpdateInc, getIncs, getIncNumberByWeek, getIncByCategory } from "./db.js";
 import QuickChart from 'quickchart-js';
 
-const { App, SocketModeReceiver } = pkg;
 dotenv.config();
 
 console.log("SLACK_BOT_TOKEN", process.env.SLACK_BOT_TOKEN);

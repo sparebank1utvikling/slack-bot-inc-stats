@@ -1,44 +1,36 @@
-# Stage 1: Build the app
-FROM node:18-alpine AS build
+# Use Node.js base image
+FROM node:20-bullseye-slim as base
 
-# Install all node_modules, including dev dependencies
-FROM base as deps
-
-# Set working directory
-WORKDIR /app
-
-# Define build arguments
+# Define environment variables
 ARG DATABASE_URL
-
-# Use build arguments as environment variables during build
-ENV DATABASE_URL=$DATABASE_URL
-
-# Install app dependencies
-ADD package.json package-lock.json 
-RUN npm install --include=dev
-
-# Copy the rest of the application code
-COPY . .
-
-# Build the app (if needed)
-# RUN npm run build
-
-# Stage 2: Create the production image
-FROM node:18-alpine AS production
-
-# Set working directory
-WORKDIR /app
-
-# Copy the built app from the previous stage
-COPY . .
-
-# Set runtime environment variables
-# Set DATABASE_URL for runtime
 ENV DATABASE_URL=$DATABASE_URL
 ENV NODE_ENV=production
 
-# Expose the port on which the app will run
-EXPOSE 8080
+# Setup production node_modules
+FROM base as production-deps
+# Set working directory
+WORKDIR /myapp
+
+COPY package.json package-lock.json ./
+RUN rm -rf /myapp/node_modules && npm install
+
+# Debug: List node_modules
+RUN ls -la /myapp/node_modules && ls -la /myapp/node_modules/@slack/bolt
+
+from base 
+
+WORKDIR /myapp
+
+# Copy the rest of the application code without overwriting node_modules
+COPY --from=production-deps /myapp/node_modules /myapp/node_modules
+COPY app/ ./app/
+COPY package.json package-lock.json ./
+
+# Set runtime environment variables
+ENV DATABASE_URL=$DATABASE_URL
+ENV NODE_ENV=production
+
+EXPOSE 80
 
 # Command to run the app
 CMD ["npm", "start"]
