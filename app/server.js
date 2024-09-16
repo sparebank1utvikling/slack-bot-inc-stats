@@ -6,11 +6,6 @@ import QuickChart from 'quickchart-js';
 const { App, SocketModeReceiver } = pkg;
 dotenv.config();
 
-console.log("SLACK_BOT_TOKEN", process.env.SLACK_BOT_TOKEN);
-console.log("SLACK_SIGNING_SECRET", process.env.SOCKET_TOKEN);
-
-
-
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN, // Bot user token
   receiver: new SocketModeReceiver({
@@ -18,7 +13,7 @@ const app = new App({
   }),
 });
 
-const categories = await getCategoriesArray();
+const categories = await getCategoriesArray() ?? [];
 
 app.command('/addcategory', async ({ command, ack, respond }) => {
   await ack(); // Acknowledge the command

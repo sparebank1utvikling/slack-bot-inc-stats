@@ -1,11 +1,12 @@
 import pkg from "pg";
 import dotenv from "dotenv";
+
 dotenv.config();
 
 const { Client } = pkg;
 
 // Database connection details
-const client = new Client({ connectionString: process.env.DATABASE_URL });
+const client = new Client({host:"sbu-incstats-nea-psql.postgres.database.azure.com", user:"pmbetaling", password:process.env.DATABASE_PASSWORD, database:"postgres", port:5432});
 
 client
   .connect()
@@ -16,18 +17,15 @@ client
   export function addOrUpdateInc(user_name, text, category) {
     return client.query(
       `INSERT INTO incs (user_name, text, category)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (text)
-       DO UPDATE SET
-         user_name = EXCLUDED.user_name,
-         category = EXCLUDED.category`,
+       VALUES ($1, $2, $3)`,
       [user_name, text, category],
     );
   }
 
+
 export function addCategory(category_name) {
   return client.query(
-    `INSERT INTO categories (category_name)
+    `INSERT INTO categories (name)
      VALUES ($1) ON CONFLICT (name) DO NOTHING RETURNING id`,
     [category_name],
   );
@@ -110,8 +108,8 @@ export async function getIncNumberByWeek(numberOfDaysAgo) {
 
 export async function getCategoriesArray() {
   try {
-    const result = await client.query("SELECT category_name FROM categories");
-    const categories = result.rows.map(row => row.category_name);
+    const result = await client.query("SELECT name FROM categories");
+    const categories = result.rows.map(row => row.name);
     console.log("categories", categories);
     return categories;
   } catch (err) {

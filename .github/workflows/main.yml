@@ -29,7 +29,9 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: ${{ secrets.AZURE_URL }}/incstats:V2
+          tags: ${{ secrets.AZURE_URL }}/incstats:${{ github.sha }}
           file: Dockerfile
           build-args: |
             DATABASE_URL=your_database_url
+
+            #TODO Make this app push a new revision to the azure container app. Currently not able to do it
