@@ -23,13 +23,19 @@ client
   }
 
 
-export function addCategory(category_name) {
-  return client.query(
-    `INSERT INTO categories (name)
-     VALUES ($1) ON CONFLICT (name) DO NOTHING RETURNING id`,
-    [category_name],
-  );
-}
+  export async function addCategory(category_name) {
+    try {
+      const result = await client.query(
+        `INSERT INTO categories (name)
+         VALUES ($1) ON CONFLICT (name) DO NOTHING RETURNING id`,
+        [category_name]
+      );
+      return result;  // Return the result of the query
+    } catch (error) {
+      console.error("Error inserting category:", error);
+      throw error;  // Re-throw error to be caught in the command handler
+    }
+  }
 
 export function getIncs(numberOfDaysAgo) {
   if (numberOfDaysAgo === undefined) {

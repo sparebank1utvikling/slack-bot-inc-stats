@@ -28,7 +28,7 @@ app.command('/addcategory', async ({ command, ack, respond }) => {
 
   try {
     // Insert the new category into the database
-    const result = addCategory(categoryName)
+    const result = await addCategory(categoryName)
 
     if (result.rowCount > 0) {
       return respond({
