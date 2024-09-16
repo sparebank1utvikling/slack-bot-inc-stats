@@ -34,4 +34,4 @@ jobs:
           build-args: |
             DATABASE_URL=your_database_url
 
-            #TODO Make this app push a new revision to the azure container app. Currently not able to do it
+            #TODO Make this app push a new revision to the azure container app. Currently you have to publish it manually
