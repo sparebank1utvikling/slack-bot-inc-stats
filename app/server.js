@@ -13,12 +13,12 @@ const app = new App({
   }),
 });
 
-const categories = await getCategoriesArray() ?? [];
 
 app.command('/addcategory', async ({ command, ack, respond }) => {
   await ack(); // Acknowledge the command
 
   const categoryName = command.text.trim();
+  console.log(`Category Name: '${categoryName}'`);
 
   if (!categoryName) {
     return respond({
@@ -100,6 +100,7 @@ app.event("app_home_opened", async ({ event, client }) => {
 app.event("message", async ({ event, client, context }) => {
   console.log("Message received:", event);
   const encodedText = btoa(event.text);
+  const categories = await getCategoriesArray() ?? [];
   console.log("encodedText", encodedText);
   try {
     // Respond with a message containing a dropdown menu
