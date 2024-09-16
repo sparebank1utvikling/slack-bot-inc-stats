@@ -1,12 +1,14 @@
-import { App, SocketModeReceiver } from "@slack/bolt";
+import pkg from "@slack/bolt";
 import dotenv from "dotenv";
-import { addOrUpdateInc, getIncs, getIncNumberByWeek, getIncByCategory } from "./db.js";
+import { addOrUpdateInc, getIncs, getIncNumberByWeek, getIncByCategory, getCategoriesArray, addCategory } from "./db.js";
 import QuickChart from 'quickchart-js';
 
+const { App, SocketModeReceiver } = pkg;
 dotenv.config();
 
 console.log("SLACK_BOT_TOKEN", process.env.SLACK_BOT_TOKEN);
 console.log("SLACK_SIGNING_SECRET", process.env.SOCKET_TOKEN);
+
 
 
 const app = new App({
@@ -16,11 +18,39 @@ const app = new App({
   }),
 });
 
-const categories = [
-  { text: "Category 1", value: "category_1" },
-  { text: "Category 2", value: "category_2" },
-  { text: "Category 3", value: "category_3" },
-];
+const categories = await getCategoriesArray();
+
+app.command('/addcategory', async ({ command, ack, respond }) => {
+  await ack(); // Acknowledge the command
+
+  const categoryName = command.text.trim();
+
+  if (!categoryName) {
+    return respond({
+      text: "Please provide a category name.",
+    });
+  }
+
+  try {
+    // Insert the new category into the database
+    const result = addCategory(categoryName)
+
+    if (result.rowCount > 0) {
+      return respond({
+        text: `Category '${categoryName}' has been added successfully.`,
+      });
+    } else {
+      return respond({
+        text: `Category '${categoryName}' already exists.`,
+      });
+    }
+  } catch (error) {
+    console.error("Error inserting category:", error);
+    return respond({
+      text: "There was an error adding the category. Please try again later.",
+    });
+  }
+});
 
 app.event("app_home_opened", async ({ event, client }) => {
   try {
@@ -98,9 +128,9 @@ app.event("message", async ({ event, client, context }) => {
             options: categories.map((category) => ({
               text: {
                 type: "plain_text",
-                text: category.text,
+                text: category,
               },
-              value: category.value,
+              value: category,
             })),
           },
         },

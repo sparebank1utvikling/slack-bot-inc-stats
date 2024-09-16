@@ -25,6 +25,14 @@ client
     );
   }
 
+export function addCategory(category_name) {
+  return client.query(
+    `INSERT INTO categories (category_name)
+     VALUES ($1) ON CONFLICT (name) DO NOTHING RETURNING id`,
+    [category_name],
+  );
+}
+
 export function getIncs(numberOfDaysAgo) {
   if (numberOfDaysAgo === undefined) {
     const query = {
@@ -98,4 +106,15 @@ export async function getIncNumberByWeek(numberOfDaysAgo) {
   }
 
   return await client.query(queryText);
+}
+
+export async function getCategoriesArray() {
+  try {
+    const result = await client.query("SELECT category_name FROM categories");
+    const categories = result.rows.map(row => row.category_name);
+    console.log("categories", categories);
+    return categories;
+  } catch (err) {
+    console.error("Error fetching categories", err);
+  }
 }

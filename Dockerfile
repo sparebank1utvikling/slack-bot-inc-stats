@@ -1,36 +1,32 @@
-# Use Node.js base image
-FROM node:20-bullseye-slim as base
+FROM node:20-bullseye-slim
 
-# Define environment variables
-ARG DATABASE_URL
-ENV DATABASE_URL=$DATABASE_URL
-ENV NODE_ENV=production
-
-# Setup production node_modules
-FROM base as production-deps
-# Set working directory
+# Create app directory
 WORKDIR /myapp
 
-COPY package.json package-lock.json ./
-RUN rm -rf /myapp/node_modules && npm install
+# Copy package.json
+COPY package.json ./
 
-# Debug: List node_modules
-RUN ls -la /myapp/node_modules && ls -la /myapp/node_modules/@slack/bolt
+# Set npm registry to the public registry
+RUN npm config set registry https://registry.npmjs.org/
 
-from base 
+# Install dependencies with verbose logging
+RUN npm install --verbose
 
-WORKDIR /myapp
+# Check if dotenv is installed
+RUN npm list dotenv
 
-# Copy the rest of the application code without overwriting node_modules
-COPY --from=production-deps /myapp/node_modules /myapp/node_modules
-COPY app/ ./app/
-COPY package.json package-lock.json ./
+# Debug: Show the contents of package.json
+RUN echo "Contents of package.json:" && cat package.json
 
-# Set runtime environment variables
-ENV DATABASE_URL=$DATABASE_URL
-ENV NODE_ENV=production
+# Check node_modules content
+RUN echo "Contents of node_modules after npm install:" && ls -la /myapp/node_modules
 
-EXPOSE 80
+# Check if dotenv is in node_modules
+RUN echo "Contents of dotenv after npm install:" && ls -la /myapp/node_modules/dotenv || echo "dotenv not found"
 
+# Copy the application source code
+COPY . .
+
+EXPOSE 8080
 # Command to run the app
 CMD ["npm", "start"]
