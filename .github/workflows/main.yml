@@ -29,9 +29,25 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: ${{ secrets.AZURE_URL }}/incstats:V2
+          tags: ${{ secrets.AZURE_URL }}/incstats:${{ github.sha }}
           file: Dockerfile
           build-args: |
             DATABASE_URL=your_database_url
+      
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Redeploy Azure Container App
+        run: |
+          az containerapp revision copy \
+            --name sbu-inslack-nea-app \
+            --resource-group sbu-public-incstats-net-nea-rg \
+            --cpu 0.5 \
+            --memory 1.0 \
+            --image ${{ secrets.AZURE_URL }}/incstats:${{ github.sha }}
 
             #TODO Make this app push a new revision to the azure container app. Currently you have to publish it manually
