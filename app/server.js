@@ -65,7 +65,7 @@ app.event("app_home_opened", async ({ event, client }) => {
             type: "section",
             text: {
               type: "mrkdwn",
-              text: "*Welcome to your _App's Home tab_* :tada:",
+              text: "*Welcome to Inc stats :tada:",
             },
           },
           {
@@ -98,6 +98,11 @@ app.event("app_home_opened", async ({ event, client }) => {
 
 // Add your event listeners
 app.event("message", async ({ event, client, context }) => {
+    // Check if the message is a reply (i.e., it has a thread_ts field)
+    if (event.thread_ts) {
+      // Ignore replies
+      return;
+    }
   console.log("Message received:", event);
   const encodedText = btoa(event.text);
   const categories = await getCategoriesArray() ?? [];
