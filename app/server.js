@@ -47,66 +47,15 @@ app.command('/addcategory', async ({ command, ack, respond }) => {
   }
 });
 
-app.event("app_home_opened", async ({ event, client }) => {
-  try {
-    /* view.publish is the method that your app uses to push a view to the Home tab */
-    await client.views.publish({
-      /* the user that opened your app's app home */
-      user_id: event.user,
-
-      /* the view object that appears in the app home*/
-      view: {
-        type: "home",
-        callback_id: "home_view",
-
-        /* body of the view */
-        blocks: [
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: "*Welcome to Inc stats :tada:",
-            },
-          },
-          {
-            type: "divider",
-          },
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: "This is a section block with a button."
-            },
-            accessory: {
-              type: "button",
-              text: {
-                type: "plain_text",
-                text: "Click me!"
-              },
-              action_id: "button_click"
-            }
-          }
-        ],
-      },
-    });
-  }
-  catch (error) {
-    console.error(error);
-  }
-
-});
-
 // Add your event listeners
-app.event("message", async ({ event, client, context }) => {
+app.event("message", async ({ event, client }) => {
     // Check if the message is a reply (i.e., it has a thread_ts field)
     if (event.thread_ts) {
       // Ignore replies
       return;
     }
-  console.log("Message received:", event);
   const encodedText = btoa(event.text);
   const categories = await getCategoriesArray() ?? [];
-  console.log("encodedText", encodedText);
   try {
     // Respond with a message containing a dropdown menu
     await client.chat.postMessage({
@@ -158,11 +107,9 @@ app.action(/category_select-.*/, async ({ body, ack, say }) => {
 app.command("/inc_stats", async ({ ack, body, client }) => {
   // Acknowledge the command request
   await ack();
-  console.log("body", body);
 
   const numbers = body.text.match(/\d+/);
   const numberOfDays = numbers ? parseInt(numbers[0]) : undefined;
-  console.log("Extracted number:", numberOfDays);
 
   const dbResponse = await getIncs(numberOfDays);
 
@@ -210,7 +157,7 @@ app.command("/inc_stats", async ({ ack, body, client }) => {
   }
 });
 
-app.event("app_home_opened", async ({ event, client, context }) => {
+app.event("app_home_opened", async ({ event, client }) => {
   try {
     const dbResponse = await getIncs();
     /* view.publish is the method that your app uses to push a view to the Home tab */

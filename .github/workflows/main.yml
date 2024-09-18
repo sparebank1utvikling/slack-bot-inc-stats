@@ -53,5 +53,3 @@ jobs:
             --cpu 0.5 \
             --memory 1.0 \
             --image ${{ secrets.AZURE_URL }}/incstats:${{ github.sha }}
-
-            #TODO Make this app push a new revision to the azure container app. Currently you have to publish it manually
