@@ -9,19 +9,19 @@ Alle i team-pm-betaling skal ha fått tilgang til Landingzone sbu-public-incstat
 ## Database diagram 
 Databasen er satt opp manuelt og har følgende tabeller: 
 
-+-----------------+
-|    categories   |
-+-----------------+
-| id (PK)         |
-| name (Unique)   |
-+-----------------+
+### Categories Table
 
-+-----------------+
-|      incs       |
-+-----------------+
-| id (PK)         |
-| user_name       |
-| text            |
-| category        |
-| dropdown_id (Unique) |
-+-----------------+
+| Column Name | Data Type   | Constraints          |
+|-------------|-------------|-----------------------|
+| id          | Integer     | Primary Key, Auto-Increment |
+| name        | String      | Unique, Not Null      |
+
+### Incs Table
+
+| Column Name  | Data Type   | Constraints          |
+|--------------|-------------|-----------------------|
+| id           | Integer     | Primary Key, Auto-Increment |
+| user_name    | String      |                       |
+| text         | String      |                       |
+| category     | String      |                       |
+| dropdown_id  | String      | Unique, Not Null      |
