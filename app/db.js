@@ -13,12 +13,13 @@ client
   .then(() => console.log("Connected to the database"))
   .catch((err) => console.error("Connection error", err.stack));
 
-  //Currently this relies on the text to be unique. This is not optimal but couldnt find another way to do it TODO: could be done better
-  export function addOrUpdateInc(user_name, text, category) {
+  export function addOrUpdateInc(user_name, text, category, dropdown_id) {
     return client.query(
-      `INSERT INTO incs (user_name, text, category)
-       VALUES ($1, $2, $3)`,
-      [user_name, text, category],
+      `INSERT INTO incs (user_name, text, category, dropdown_id)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (dropdown_id) 
+       DO UPDATE SET user_name = EXCLUDED.user_name, text = EXCLUDED.text, category = EXCLUDED.category`,
+      [user_name, text, category, dropdown_id],
     );
   }
 

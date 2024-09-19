@@ -100,8 +100,9 @@ app.action(/category_select-.*/, async ({ body, ack, say }) => {
   console.log("text", text);
   // Respond to the user's selection
   const selectedCategory = body.actions[0].selected_option.text.text;
+  const dropdown_id = body.actions[0].action_id;
   await say(`You selected: ${selectedCategory}`);
-  addOrUpdateInc(body.user.username, text, selectedCategory);
+  addOrUpdateInc(body.user.username, text, selectedCategory, dropdown_id);
 });
 
 app.command("/inc_stats", async ({ ack, body, client }) => {
@@ -157,59 +158,6 @@ app.command("/inc_stats", async ({ ack, body, client }) => {
   }
 });
 
-app.event("app_home_opened", async ({ event, client }) => {
-  try {
-    const dbResponse = await getIncs();
-    /* view.publish is the method that your app uses to push a view to the Home tab */
-    await client.views.publish({
-      /* the user that opened your app's app home */
-      user_id: event.user,
-
-      /* the view object that appears in the app home*/
-      view: {
-        type: "home",
-        callback_id: "home_view",
-
-        /* body of the view */
-        blocks: [
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: "*Welcome to your _App's Home tab_* :tada:",
-            },
-          },
-          {
-            type: "divider",
-          },
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: dbResponse.rows
-                .map((row) => `${row.text} (${row.category})`)
-                .join("\n"),
-            },
-          },
-          {
-            type: "actions",
-            elements: [
-              {
-                type: "button",
-                text: {
-                  type: "plain_text",
-                  text: "Click me!",
-                },
-              },
-            ],
-          },
-        ],
-      },
-    });
-  } catch (error) {
-    console.error(error);
-  }
-});
 
 (async () => {
   await app.start(process.env.PORT || 3000);
