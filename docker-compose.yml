@@ -1,4 +1,4 @@
-version: '3.8'  # Optional: specify the Compose file version
+version: "3.8" # Optional: specify the Compose file version
 
 services:
   slack-bot-inc-stats:

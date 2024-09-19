@@ -2,16 +2,14 @@ name: Build and Push to ACR
 on:
   push:
     branches:
-      - 'main'
+      - "main"
 permissions:
   id-token: write
   contents: read
 jobs:
   build:
-    name: 'Build and Push to ACR'
+    name: "Build and Push to ACR"
     runs-on: ubuntu-latest
-    env:
-      DATABASE_URL: 'your_database_url'
 
     defaults:
       run:
@@ -43,7 +41,6 @@ jobs:
           file: Dockerfile
           build-args: |
             DATABASE_URL=your_database_url
-      
 
       - name: Redeploy Azure Container App
         run: |

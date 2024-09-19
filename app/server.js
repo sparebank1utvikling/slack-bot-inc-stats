@@ -1,7 +1,14 @@
 import pkg from "@slack/bolt";
 import dotenv from "dotenv";
-import { addOrUpdateInc, getIncs, getIncNumberByWeek, getIncByCategory, getCategoriesArray, addCategory } from "./db.js";
-import QuickChart from 'quickchart-js';
+import {
+  addOrUpdateInc,
+  getIncs,
+  getIncNumberByWeek,
+  getIncByCategory,
+  getCategoriesArray,
+  addCategory,
+} from "./db.js";
+import QuickChart from "quickchart-js";
 
 const { App, SocketModeReceiver } = pkg;
 dotenv.config();
@@ -13,8 +20,7 @@ const app = new App({
   }),
 });
 
-
-app.command('/addcategory', async ({ command, ack, respond }) => {
+app.command("/addcategory", async ({ command, ack, respond }) => {
   await ack(); // Acknowledge the command
 
   const categoryName = command.text.trim();
@@ -28,7 +34,7 @@ app.command('/addcategory', async ({ command, ack, respond }) => {
 
   try {
     // Insert the new category into the database
-    const result = await addCategory(categoryName)
+    const result = await addCategory(categoryName);
 
     if (result.rowCount > 0) {
       return respond({
@@ -49,13 +55,12 @@ app.command('/addcategory', async ({ command, ack, respond }) => {
 
 // Add your event listeners
 app.event("message", async ({ event, client }) => {
-    // Check if the message is a reply (i.e., it has a thread_ts field)
-    if (event.thread_ts) {
-      // Ignore replies
-      return;
-    }
+  // Check if the message is a reply (i.e., it has a thread_ts field)
+  if (event.thread_ts) {
+    // Ignore replies
+    return;
+  }
   const encodedText = btoa(event.text);
-  const categories = await getCategoriesArray() ?? [];
   try {
     // Respond with a message containing a dropdown menu
     await client.chat.postMessage({
@@ -69,25 +74,45 @@ app.event("message", async ({ event, client }) => {
             text: "Please choose a category from the dropdown menu below:",
           },
           accessory: {
-            type: "static_select",
+            type: "external_select",
             action_id: `category_select-${encodedText}`,
             placeholder: {
               type: "plain_text",
               text: "Select a category",
             },
-            options: categories.map((category) => ({
-              text: {
-                type: "plain_text",
-                text: category,
-              },
-              value: category,
-            })),
+            min_query_length: 0,
           },
         },
       ],
     });
   } catch (error) {
     console.error("Error posting message:", error);
+  }
+});
+
+// Listen for when the user clicks the dropdown and fetch categories
+app.options(/category_select-.*/, async ({ options, ack }) => {
+  try {
+    // Fetch the list of categories dynamically
+    const categories = (await getCategoriesArray()) ?? [];
+
+    // Format the options
+    const optionsList = categories.map((category) => ({
+      text: {
+        type: "plain_text",
+        text: category,
+      },
+      value: category,
+    }));
+
+    // Acknowledge the request and provide the options
+    await ack({
+      options: optionsList,
+    });
+
+    console.log("Dropdown options provided:", optionsList);
+  } catch (error) {
+    console.error("Error fetching dropdown options:", error);
   }
 });
 
@@ -104,6 +129,7 @@ app.action(/category_select-.*/, async ({ body, ack, say }) => {
   await say(`You selected: ${selectedCategory}`);
   addOrUpdateInc(body.user.username, text, selectedCategory, dropdown_id);
 });
+
 
 app.command("/inc_stats", async ({ ack, body, client }) => {
   // Acknowledge the command request
@@ -141,15 +167,15 @@ app.command("/inc_stats", async ({ ack, body, client }) => {
             },
           },
           {
-            type: 'image',
+            type: "image",
             image_url: chartUrlByCategory,
-            alt_text: 'Incidents per Week'
+            alt_text: "Incidents per Week",
           },
           {
-            type: 'image',
+            type: "image",
             image_url: chartUrlByWeek,
-            alt_text: 'Incidents per Week'
-          }
+            alt_text: "Incidents per Week",
+          },
         ],
       },
     });
@@ -158,75 +184,78 @@ app.command("/inc_stats", async ({ ack, body, client }) => {
   }
 });
 
-
 (async () => {
   await app.start(process.env.PORT || 3000);
   console.log("⚡️ Bolt app started");
 })();
 
-
-async function generateIncByWeekChart(numberOfDays){
-
+async function generateIncByWeekChart(numberOfDays) {
   const incNumberByWeek = await getIncNumberByWeek(numberOfDays);
 
   // Prepare data for the chart
-  const labels = incNumberByWeek.rows.map(row => row.week.toISOString().split('T')[0]);
-  const data = incNumberByWeek.rows.map(row => parseInt(row.count, 10));
+  const labels = incNumberByWeek.rows.map(
+    (row) => row.week.toISOString().split("T")[0],
+  );
+  const data = incNumberByWeek.rows.map((row) => parseInt(row.count, 10));
 
-   // Generate the bar chart URL using QuickChart
+  // Generate the bar chart URL using QuickChart
   const chart = new QuickChart();
   chart.setConfig({
-    type: 'line',
+    type: "line",
     data: {
       labels: labels,
-      datasets: [{
-        label: 'Incidents per Week',
-        data: data,
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        borderColor: 'rgba(75, 192, 192, 1)',
-        borderWidth: 1
-      }]
+      datasets: [
+        {
+          label: "Incidents per Week",
+          data: data,
+          backgroundColor: "rgba(75, 192, 192, 0.2)",
+          borderColor: "rgba(75, 192, 192, 1)",
+          borderWidth: 1,
+        },
+      ],
     },
     options: {
       scales: {
         y: {
-          beginAtZero: true
-        }
-      }
-    }
+          beginAtZero: true,
+        },
+      },
+    },
   });
   chart.setWidth(800);
   chart.setHeight(400);
   return chart.getUrl();
 }
 
-async function generateIncByCategoryChart(numberOfDays){
+async function generateIncByCategoryChart(numberOfDays) {
   const dbResponse = await getIncByCategory(numberOfDays);
 
-  const labels = dbResponse.rows.map(row => row.category);
-  const data = dbResponse.rows.map(row => parseInt(row.count, 10));
+  const labels = dbResponse.rows.map((row) => row.category);
+  const data = dbResponse.rows.map((row) => parseInt(row.count, 10));
 
-   // Generate the bar chart URL using QuickChart
+  // Generate the bar chart URL using QuickChart
   const chart = new QuickChart();
   chart.setConfig({
-    type: 'bar',
+    type: "bar",
     data: {
       labels: labels,
-      datasets: [{
-        label: 'Incidents by category',
-        data: data,
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        borderColor: 'rgba(75, 192, 192, 1)',
-        borderWidth: 1
-      }]
+      datasets: [
+        {
+          label: "Incidents by category",
+          data: data,
+          backgroundColor: "rgba(75, 192, 192, 0.2)",
+          borderColor: "rgba(75, 192, 192, 1)",
+          borderWidth: 1,
+        },
+      ],
     },
     options: {
       scales: {
         y: {
-          beginAtZero: true
-        }
-      }
-    }
+          beginAtZero: true,
+        },
+      },
+    },
   });
   chart.setWidth(800);
   chart.setHeight(400);
