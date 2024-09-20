@@ -126,7 +126,6 @@ app.action(/category_select-.*/, async ({ body, ack, say }) => {
   // Respond to the user's selection
   const selectedCategory = body.actions[0].selected_option.text.text;
   const dropdown_id = body.actions[0].action_id;
-  await say(`You selected: ${selectedCategory}`);
   addOrUpdateInc(body.user.username, text, selectedCategory, dropdown_id);
 });
 
