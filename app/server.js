@@ -53,18 +53,21 @@ app.command("/addcategory", async ({ command, ack, respond }) => {
   }
 });
 
-// Add your event listeners
 app.event("message", async ({ event, client }) => {
   // Check if the message is a reply (i.e., it has a thread_ts field)
-  if (event.thread_ts || event.bot_id) {
+  if (event.thread_ts) {
     // Ignore replies
     return;
   }
+
   const encodedText = btoa(event.text);
+  console.log("Posting an ephemeral message to user:", event.user, "in channel:", event.channel);
+
   try {
-    // Respond with a message containing a dropdown menu
-    await client.chat.postMessage({
-      channel: event.channel,
+    // Respond with an ephemeral message containing a dropdown menu
+    await client.chat.postEphemeral({
+      channel: event.channel, // The channel where the message was posted
+      user: event.user, // The user who triggered the event
       text: `Hello, <@${event.user}>! Please choose a category:`,
       blocks: [
         {
@@ -85,10 +88,13 @@ app.event("message", async ({ event, client }) => {
         },
       ],
     });
+
+    console.log("Ephemeral message posted successfully");
   } catch (error) {
-    console.error("Error posting message:", error);
+    console.error("Error posting ephemeral message:", error);
   }
 });
+
 
 // Listen for when the user clicks the dropdown and fetch categories
 app.options(/category_select-.*/, async ({ options, ack }) => {
