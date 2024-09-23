@@ -56,7 +56,7 @@ app.command("/addcategory", async ({ command, ack, respond }) => {
 // Add your event listeners
 app.event("message", async ({ event, client }) => {
   // Check if the message is a reply (i.e., it has a thread_ts field)
-  if (event.thread_ts) {
+  if (event.thread_ts || event.bot_id) {
     // Ignore replies
     return;
   }
