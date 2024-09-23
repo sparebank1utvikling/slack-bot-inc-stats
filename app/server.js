@@ -96,8 +96,18 @@ app.options(/category_select-.*/, async ({ options, ack }) => {
     // Fetch the list of categories dynamically
     const categories = (await getCategoriesArray()) ?? [];
 
+    // Get the user input from the options.value field
+    const userInput = options.value || "";
+
+    // If no input is provided, return all categories
+    const filteredCategories = userInput
+      ? categories.filter((category) =>
+          category.toLowerCase().includes(userInput.toLowerCase())
+        )
+      : categories;
+
     // Format the options
-    const optionsList = categories.map((category) => ({
+    const optionsList = filteredCategories.map((category) => ({
       text: {
         type: "plain_text",
         text: category,
@@ -105,14 +115,14 @@ app.options(/category_select-.*/, async ({ options, ack }) => {
       value: category,
     }));
 
-    // Acknowledge the request and provide the options
+    // Acknowledge the request and provide the filtered options
     await ack({
       options: optionsList,
     });
 
     console.log("Dropdown options provided:", optionsList);
   } catch (error) {
-    console.error("Error fetching dropdown options:", error);
+    console.error("Error fetching and filtering dropdown options:", error);
   }
 });
 
