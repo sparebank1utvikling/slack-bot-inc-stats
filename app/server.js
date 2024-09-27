@@ -65,9 +65,8 @@ app.event("message", async ({ event, client }) => {
 
   try {
     // Respond with an ephemeral message containing a dropdown menu
-    await client.chat.postEphemeral({
+    await client.chat.postMessage({
       channel: event.channel, // The channel where the message was posted
-      user: event.user, // The user who triggered the event
       text: `Hello, <@${event.user}>! Please choose a category:`,
       blocks: [
         {
