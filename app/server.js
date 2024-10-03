@@ -8,7 +8,7 @@ import {
   getCategoriesArray,
   addCategory,
 } from "./db.js";
-import QuickChart from "quickchart-js";
+import { ChartJSNodeCanvas } from "chartjs-node-canvas"; // Import Chart.js
 
 const { App, SocketModeReceiver } = pkg;
 dotenv.config();
@@ -18,6 +18,14 @@ const app = new App({
   receiver: new SocketModeReceiver({
     appToken: process.env.SOCKET_TOKEN, // App-level token
   }),
+});
+
+// Set up the ChartJSNodeCanvas instance
+const chartWidth = 800;
+const chartHeight = 400;
+const chartJSNodeCanvas = new ChartJSNodeCanvas({
+  width: chartWidth,
+  height: chartHeight,
 });
 
 app.command("/addcategory", async ({ command, ack, respond }) => {
@@ -55,7 +63,7 @@ app.command("/addcategory", async ({ command, ack, respond }) => {
 
 app.event("message", async ({ event, client }) => {
   // Check if the message is a new message
-  if (event.subtype) {
+  if (event.subtype || (event.thread_ts && event.thread_ts !== event.ts)) {
     // Ignore everything except new messages
     return;
   }
@@ -65,8 +73,9 @@ app.event("message", async ({ event, client }) => {
 
   try {
     // Respond with an ephemeral message containing a dropdown menu
-    await client.chat.postMessage({
+    await client.chat.postEphemeral({
       channel: event.channel, // The channel where the message was posted
+      user: event.user, // The user who triggered the event
       text: `Hello, <@${event.user}>! Please choose a category:`,
       blocks: [
         {
@@ -93,7 +102,6 @@ app.event("message", async ({ event, client }) => {
     console.error("Error posting ephemeral message:", error);
   }
 });
-
 
 // Listen for when the user clicks the dropdown and fetch categories
 app.options(/category_select-.*/, async ({ options, ack }) => {
@@ -132,7 +140,7 @@ app.options(/category_select-.*/, async ({ options, ack }) => {
 });
 
 // Listen for the interaction from the dropdown menu
-app.action(/category_select-.*/, async ({ body, ack, say }) => {
+app.action(/category_select-.*/, async ({ body, ack }) => {
   // Acknowledge the action
   await ack();
   console.log("body", body);
@@ -155,7 +163,6 @@ app.command("/inc_stats", async ({ ack, body, client }) => {
   const dbResponse = await getIncs(numberOfDays);
 
   const totalIncs = dbResponse.rows.length;
-  
 
   const chartUrlByWeek = await generateIncByWeekChart(numberOfDays);
   const chartUrlByCategory = await generateIncByCategoryChart(numberOfDays);
@@ -183,7 +190,7 @@ app.command("/inc_stats", async ({ ack, body, client }) => {
           {
             type: "image",
             image_url: chartUrlByCategory,
-            alt_text: "Incidents per Week",
+            alt_text: "Incidents per Category",
           },
           {
             type: "image",
@@ -212,9 +219,8 @@ async function generateIncByWeekChart(numberOfDays) {
   );
   const data = incNumberByWeek.rows.map((row) => parseInt(row.count, 10));
 
-  // Generate the bar chart URL using QuickChart
-  const chart = new QuickChart();
-  chart.setConfig({
+  // Create the chart configuration
+  const chartConfig = {
     type: "line",
     data: {
       labels: labels,
@@ -235,21 +241,32 @@ async function generateIncByWeekChart(numberOfDays) {
         },
       },
     },
+  };
+
+
+  // Render the chart and get the image as JPEG
+  const imageBuffer = await chartJSNodeCanvas.renderToBuffer(chartConfig, {
+    format: 'jpeg', // Change format to JPEG
+    width: 400, // Set width
+    height: 200, // Set height
+    quality: 0.5, // Set quality (0 to 1)
   });
-  chart.setWidth(800);
-  chart.setHeight(400);
-  return chart.getUrl();
+  // Convert the image buffer to a base64 string
+  const imageBase64 = imageBuffer.toString('base64');
+  console.log("imageBase64", imageBase64.length);
+  // Return the URL for Slack (using a data URL)
+  return `data:image/png;base64,${imageBase64}`;
 }
 
 async function generateIncByCategoryChart(numberOfDays) {
   const dbResponse = await getIncByCategory(numberOfDays);
+  const sortedCategories = dbResponse.rows.sort((a, b) => b.count - a.count); 
 
-  const labels = dbResponse.rows.map((row) => row.category);
-  const data = dbResponse.rows.map((row) => parseInt(row.count, 10));
+  const labels = sortedCategories.map((row) => row.category);
+  const data = sortedCategories.map((row) => parseInt(row.count, 10));
 
-  // Generate the bar chart URL using QuickChart
-  const chart = new QuickChart();
-  chart.setConfig({
+  // Create the chart configuration
+  const chartConfig = {
     type: "bar",
     data: {
       labels: labels,
@@ -265,13 +282,31 @@ async function generateIncByCategoryChart(numberOfDays) {
     },
     options: {
       scales: {
+        x: {
+          ticks: {
+            autoSkip: false, // Show all labels
+            maxTicksLimit: labels.length,
+          },
+        },
         y: {
           beginAtZero: true,
+          min: 0,
+          stepSize: 1,
         },
       },
     },
+  };
+
+  // Render the chart and get the image as JPEG
+  const imageBuffer = await chartJSNodeCanvas.renderToBuffer(chartConfig, {
+    format: 'jpeg', // Change format to JPEG
+    width: 400, // Set width
+    height: 200, // Set height
+    quality: 0.5, // Set quality (0 to 1)
   });
-  chart.setWidth(800);
-  chart.setHeight(400);
-  return chart.getUrl();
+  // Convert the image buffer to a base64 string
+  const imageBase64 = imageBuffer.toString('base64');
+  console.log("imageBase64", imageBase64.length);
+  // Return the URL for Slack (using a data URL)
+  return `data:image/png;base64,${imageBase64}`;
 }
