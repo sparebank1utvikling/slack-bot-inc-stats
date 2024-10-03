@@ -55,7 +55,7 @@ app.command("/addcategory", async ({ command, ack, respond }) => {
 
 app.event("message", async ({ event, client }) => {
   // Check if the message is a new message
-  if (event.subtype) {
+  if (event.subtype || (event.thread_ts && event.thread_ts !== event.ts)) {
     // Ignore everything except new messages
     return;
   }
@@ -65,8 +65,9 @@ app.event("message", async ({ event, client }) => {
 
   try {
     // Respond with an ephemeral message containing a dropdown menu
-    await client.chat.postMessage({
+    await client.chat.postEphemeral({
       channel: event.channel, // The channel where the message was posted
+      user: event.user, // The user who triggered the event
       text: `Hello, <@${event.user}>! Please choose a category:`,
       blocks: [
         {
