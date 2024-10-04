@@ -231,11 +231,16 @@ async function generateIncByWeekChart(numberOfDays) {
     },
     options: {
       scales: {
-        y: {
-          beginAtZero: true,
-        },
-      },
-    },
+        yAxes: [{
+          ticks: {
+            beginAtZero: true,
+            min: 0,
+            stepSize: 1,
+            precision: 0
+          }
+        }]
+      }
+    }
   });
   chart.setWidth(800);
   chart.setHeight(400);
@@ -266,13 +271,19 @@ async function generateIncByCategoryChart(numberOfDays) {
     },
     options: {
       scales: {
-        y: {
-          beginAtZero: true,
-        },
-      },
-    },
+        yAxes: [{
+          ticks: {
+            beginAtZero: true,
+            min: 0,
+            stepSize: 1,
+            precision: 0
+          }
+        }]
+      }
+    }
   });
   chart.setWidth(800);
   chart.setHeight(400);
+  console.log("url", chart.getUrl());
   return chart.getUrl();
 }
