@@ -122,7 +122,7 @@ export async function getCategoriesArray() {
     const result = await client.query("SELECT name FROM categories");
     const categories = result.rows.map((row) => row.name);
     console.log("categories", categories);
-    return categories;
+    return (categories ?? []).sort((a, b) => a.localeCompare(b));
   } catch (err) {
     console.error("Error fetching categories", err);
   }
