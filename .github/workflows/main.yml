@@ -33,14 +33,21 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Delete All Images in ACR
+        run: |
+          # Delete all images in the 'incstats' repository
+          az acr repository show-tags --name sbuincstatsnorwayeastecr --repository incstats --query "[*]" -o tsv | \
+          while read -r image; do
+            echo "Deleting image: incstats:$image"
+            az acr repository delete --name sbuincstatsnorwayeastecr --image incstats:$image --yes
+          done
+
       - name: Build and Push to ACR
         uses: docker/build-push-action@v2
         with:
           push: true
           tags: ${{ secrets.AZURE_URL }}/incstats:${{ github.sha }}
           file: Dockerfile
-          build-args: |
-            DATABASE_URL=your_database_url
 
       - name: Redeploy Azure Container App
         run: |
