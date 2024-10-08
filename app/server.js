@@ -100,7 +100,7 @@ app.event("message", async ({ event, client }) => {
 app.options(/category_select-.*/, async ({ options, ack }) => {
   try {
     // Fetch the list of categories dynamically
-    const categories = (await getCategoriesArray()) ?? [];
+    const categories = await getCategoriesArray();
 
     // Get the user input from the options.value field
     const userInput = options.value || "";
