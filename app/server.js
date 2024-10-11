@@ -59,10 +59,7 @@ app.event("message", async ({ event, client }) => {
     // Ignore everything except new messages
     return;
   }
-
-  const encodedText = btoa(event.text);
   console.log("Posting an ephemeral message to user:", event.user, "in channel:", event.channel);
-
   try {
     // Respond with an ephemeral message containing a dropdown menu
     await client.chat.postEphemeral({
@@ -78,7 +75,7 @@ app.event("message", async ({ event, client }) => {
           },
           accessory: {
             type: "external_select",
-            action_id: `category_select-${encodedText}`,
+            action_id: `category_select-${event.ts}`,
             placeholder: {
               type: "plain_text",
               text: "Select a category",
@@ -137,12 +134,20 @@ app.action(/category_select-.*/, async ({ body, ack, say }) => {
   // Acknowledge the action
   await ack();
   console.log("body", body);
-  const text = atob(body.actions[0].action_id.split("-")[1]);
+  // const text = atob(body.actions[0].action_id.split("-")[1]);  Currently not used since it caused bugs, so text is just an empty string
+  const text = "";
   console.log("text", text);
   // Respond to the user's selection
   const selectedCategory = body.actions[0].selected_option.text.text;
   const dropdown_id = body.actions[0].action_id;
-  addOrUpdateInc(body.user.username, text, selectedCategory, dropdown_id);
+  try {
+    addOrUpdateInc(body.user.username, text, selectedCategory, dropdown_id);
+    await say(`You selected: ${selectedCategory}`);
+  } catch (error) {
+    say("There was an error adding the incident. Please try again later.");
+    console.error("Error adding incident:", error);  
+  }
+
 });
 
 
