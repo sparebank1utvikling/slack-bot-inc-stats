@@ -20,6 +20,19 @@ const app = new App({
   }),
 });
 
+const myStore = {};
+const TWENTYFOUR_HOURS_IN_MS = 24 * 60 * 60 * 1000;
+
+// Function to store data with a TTL
+function storeWithTTL(key, value, ttlInMilliseconds) {
+  myStore[key] = value;
+
+  // Set a timeout to delete the entry after the TTL
+  setTimeout(() => {
+    delete myStore[key];
+  }, ttlInMilliseconds);
+}
+
 app.command("/addcategory", async ({ command, ack, respond }) => {
   await ack(); // Acknowledge the command
 
@@ -59,6 +72,9 @@ app.event("message", async ({ event, client }) => {
     // Ignore everything except new messages
     return;
   }
+  const uuid = crypto.randomUUID();
+  storeWithTTL(event.text, TWENTYFOUR_HOURS_IN_MS);  // Store the text with the UUID as the key for a day
+
   console.log("Posting an ephemeral message to user:", event.user, "in channel:", event.channel);
   try {
     // Respond with an ephemeral message containing a dropdown menu
@@ -75,7 +91,7 @@ app.event("message", async ({ event, client }) => {
           },
           accessory: {
             type: "external_select",
-            action_id: `category_select-${event.ts}`,
+            action_id: uuid,
             placeholder: {
               type: "plain_text",
               text: "Select a category",
@@ -130,22 +146,34 @@ app.options(/category_select-.*/, async ({ options, ack }) => {
 });
 
 // Listen for the interaction from the dropdown menu
-app.action(/category_select-.*/, async ({ body, ack, say }) => {
+app.action(/category_select-.*/, async ({ body, ack, client }) => {
   // Acknowledge the action
   await ack();
   console.log("body", body);
-  // const text = atob(body.actions[0].action_id.split("-")[1]);  Currently not used since it caused bugs, so text is just an empty string
-  const text = "";
-  console.log("text", text);
+  const uuid = body.actions[0].action_id; // Extract the UUID from the action ID
+  const originalText = myStore[uuid] ?? '';  // Retrieve the original text
+  console.log("text", originalText);
   // Respond to the user's selection
   const selectedCategory = body.actions[0].selected_option.text.text;
   const dropdown_id = body.actions[0].action_id;
   try {
-    addOrUpdateInc(body.user.username, text, selectedCategory, dropdown_id);
-    await say(`You selected: ${selectedCategory}`);
+    // Add or update the incident
+    await addOrUpdateInc(body.user.username, originalText, selectedCategory, dropdown_id);
+    
+    // Send an ephemeral message with a checkmark emoji
+    await client.chat.postEphemeral({
+      channel: body.channel.id,  // Send it in the same channel
+      user: body.user.id,        // Send it to the user who made the selection
+      text: `✅ You selected: ${selectedCategory}`,  // Message with checkmark
+    });
   } catch (error) {
-    say("There was an error adding the incident. Please try again later.");
-    console.error("Error adding incident:", error);  
+    // Handle any errors
+    await client.chat.postEphemeral({
+      channel: body.channel.id,
+      user: body.user.id,
+      text: "❌ There was an error adding the incident. Please try again later.",
+    });
+    console.error("Error adding incident:", error);
   }
 
 });
