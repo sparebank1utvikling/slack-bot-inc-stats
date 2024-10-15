@@ -130,7 +130,7 @@ app.options(/category_select-.*/, async ({ options, ack }) => {
 });
 
 // Listen for the interaction from the dropdown menu
-app.action(/category_select-.*/, async ({ body, ack, say }) => {
+app.action(/category_select-.*/, async ({ body, ack, client }) => {
   // Acknowledge the action
   await ack();
   console.log("body", body);
@@ -141,11 +141,20 @@ app.action(/category_select-.*/, async ({ body, ack, say }) => {
   const selectedCategory = body.actions[0].selected_option.text.text;
   const dropdown_id = body.actions[0].action_id;
   try {
-    addOrUpdateInc(body.user.username, text, selectedCategory, dropdown_id);
-    await say(`You selected: ${selectedCategory}`);
+    // Add or update the incident
+    await addOrUpdateInc(body.user.username, text, selectedCategory, dropdown_id);
+    await client.chat.postEphemeral({
+      channel: body.channel.id,  // Send it in the same channel
+      user: body.user.id,        // Send it to the user who made the selection
+      text: `✅ You added the incident succesfully with the following category: ${selectedCategory}. You can change the incidents category by using the dropdown again.`,  // Message with checkmark
+    });
   } catch (error) {
-    say("There was an error adding the incident. Please try again later.");
-    console.error("Error adding incident:", error);  
+    await client.chat.postEphemeral({
+      channel: body.channel.id,  // Send it in the same channel
+      user: body.user.id,        // Send it to the user who made the selection
+      text: "❌ There was an error adding the incident. Please try again later.",
+    });
+    console.error("Error adding incident:", error);
   }
 
 });
